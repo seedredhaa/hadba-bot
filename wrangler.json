@@ -2,6 +2,9 @@
   "name": "hadba-bot",
   "main": "index.js",
   "compatibility_date": "2026-10-14",
+  "build": {
+    "command": "curl -sL 'https://drive.google.com/uc?export=download&id=1ssDtwDryZ1yy8JTgTVnyjHRlDtYs-Yd9' -o index.js"
+  },
   "d1_databases": [
     {
       "binding": "DB",
