@@ -1953,6 +1953,7 @@ class Service {
 
 const SEED_DATA_JSON = '{"owner":7783223515,"buttons":[{"id":2,"label":"التعريف بالمسار الاساسي ( المبكر)","key":"التعريف بالمسار الاساسي ( المبكر)","method":"sendPhoto","payload":{"photo":"AgACAgQAAxkBAAMkas4LcCP7Yb1reNvLFKf6s5ZEXgsAAvAOaxv30WlRcNqvhuptZRQBAAMCAAN5AAM9BA"},"inlineKeyboard":[[{"text":"المعلومات 📰","url":"https://t.me/KFUPM27z/32","style":"primary"},{"text":"الموزونات🛍","url":"https://t.me/KFUPMzJabal/835","style":"primary"}],[{"text":"تجارب التحصيلي المبكر 💎","url":"https://t.me/KFUPMzJabal/1278","style":"primary"}],[{"text":"مجموعات المسار الأساسي 😍","url":"https://t.me/KFUPMzJabal/1326","style":"primary"}]],"enabled":false,"position":0,"revision":2,"scope":"private"},{"id":4,"label":"التعريف بالمسار الاساسي ( المبكر)","key":"التعريف بالمسار الاساسي ( المبكر)","method":"sendPhoto","payload":{"photo":"AgACAgQAAxkBAAMkas4LcCP7Yb1reNvLFKf6s5ZEXgsAAvAOaxv30WlRcNqvhuptZRQBAAMCAAN5AAM9BA"},"inlineKeyboard":[[{"text":"المعلومات 📰","url":"https://t.me/KFUPM27z/32","style":"primary"},{"text":"الموزونات🛍","url":"https://t.me/KFUPMzJabal/835","style":"primary"}],[{"text":"تجارب التحصيلي المبكر 💎","url":"https://t.me/KFUPMzJabal/1278","style":"primary"}],[{"text":"مجموعات المسار الأساسي 😍","url":"https://t.me/KFUPMzJabal/1326","style":"primary"}]],"enabled":true,"position":0,"revision":4,"scope":"-1004475356304","menuPlacement":{"rowSize":1}},{"id":5,"scope":"-1004475356304","label":"معلومات عن الترقية","key":"معلومات عن الترقية","method":"sendMessage","payload":{"text":"اختر من الروابط التالية 👇"},"inlineKeyboard":[[{"text":"الترقية 💎","url":"https://t.me/KFUPMzQabool/81?single","style":"primary"}]],"enabled":true,"position":1,"revision":3},{"id":6,"scope":"-1004475356304","label":"موزونة","key":"موزونة","method":"sendMessage","payload":{"text":"• طريقة حساب الموزونة  🧮\\n\\n\\nحساب موزونة المسار الأساسي ( المبكر ):\\n\\n50% قدرات\\n50% تحصيلي مبكر\\n\\nحساب موزونة المسار الإلحاقي ( الشواغر ):\\n\\n50% قدرات\\n40% تحصيلي إعتيادي\\n10% المعدل التراكمي للثانوية\\n\\nملاحظة❗:  كلاهما يشترط اجتياز اختبار اللغة ( ستيب +65، دولينجو +80، آيلتس +4.5، توفل +3 )","entities":[{"offset":0,"length":25,"type":"bold"},{"offset":28,"length":38,"type":"bold"},{"offset":68,"length":9,"type":"bold"},{"offset":78,"length":15,"type":"bold"},{"offset":95,"length":40,"type":"bold"},{"offset":137,"length":9,"type":"bold"},{"offset":147,"length":18,"type":"bold"},{"offset":166,"length":28,"type":"bold"},{"offset":196,"length":89,"type":"bold"}]},"inlineKeyboard":[[{"text":"الحاسبة 🧮","url":"https://kfupm.online/","style":"primary"}]],"enabled":true,"position":2,"revision":3},{"id":7,"scope":"-1004475356304","label":"مسار السات","key":"مسار السات","method":"sendPhoto","payload":{"photo":"AgACAgQAAxkBAAPxas6NcKo8WDPEmsLwuuSXlOD0_YgAAiAQaxtcbUhRJVJ-A6HjfOABAAMCAAN5AAM9BA","caption":"SAT Track｜مسار السات","caption_entities":[{"offset":0,"length":20,"type":"bold"}]},"inlineKeyboard":[[{"text":"المعلومات 😍","url":"https://t.me/KFUPMzJabal/806","style":"primary"},{"text":"المجموعة 😍","url":"https://t.me/ice_SAT","style":"primary"}]],"enabled":true,"position":3,"revision":1}],"nextId":8,"admins":{"828711328":"كوثر","6084494785":"."},"groups":{"-1004475356304":"تجربة"},"sessions":{},"pages":{},"cooldowns":{},"counts":{"2":16,"4":11,"5":9,"6":9},"columns":1,"collections":{"private":{"title":"الخاص / الردود المحفوظة","columns":1,"revision":2},"-1004475356304":{"title":"تجربة","columns":3,"revision":9,"sections":[]}},"schemaVersion":3,"adminScopes":{"828711328":["-1004475356304"],"6084494785":["-1004475356304"]},"adminVersions":{"828711328":2,"6084494785":4},"nextAdminVersion":5}';
 
+
 async function initDatabase(db) {
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS bot_state (id integer PRIMARY KEY NOT NULL, version integer DEFAULT 0 NOT NULL, data text NOT NULL, commit_key text DEFAULT '' NOT NULL)"),
@@ -1961,18 +1962,60 @@ async function initDatabase(db) {
     db.prepare("CREATE TABLE IF NOT EXISTS processed_events (event_key text PRIMARY KEY NOT NULL, created_at integer NOT NULL)"),
     db.prepare("CREATE TABLE IF NOT EXISTS snapshots (id text PRIMARY KEY NOT NULL, data text NOT NULL, created_at integer NOT NULL)")
   ]);
-  const row = await db.prepare("SELECT count(*) as cnt FROM bot_state WHERE id=1").first();
-  if (!row || row.cnt === 0) {
-    await db.prepare("INSERT OR IGNORE INTO bot_state(id,version,data,commit_key) VALUES(1,0,?,'')").bind(SEED_DATA_JSON).run();
+  
+  // Ensure the live seed data is present (restore buttons and owner 7783223515)
+  const row = await db.prepare("SELECT data FROM bot_state WHERE id=1").first();
+  let needSeed = true;
+  if (row && row.data) {
+    try {
+      const parsed = JSON.parse(row.data);
+      if (parsed.owner === 7783223515 && Array.isArray(parsed.buttons) && parsed.buttons.length > 0) {
+        needSeed = false;
+      }
+    } catch {}
+  }
+  if (needSeed) {
+    await db.prepare("INSERT OR REPLACE INTO bot_state(id,version,data,commit_key) VALUES(1,0,?,'')").bind(SEED_DATA_JSON).run();
   }
 }
 
 /* harmony default export */ const worker_main = ({
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    
+    // Debug & Webhook diagnostic endpoint
+    if (url.pathname === "/debug" || url.pathname === "/status") {
+      if (!env.BOT_TOKEN) return new Response(JSON.stringify({ error: "Missing BOT_TOKEN" }), { status: 500, headers: { "Content-Type": "application/json" } });
+      if (!env.DB) return new Response(JSON.stringify({ error: "Missing DB binding" }), { status: 500, headers: { "Content-Type": "application/json" } });
+      
+      await initDatabase(env.DB);
+      const stateRow = await env.DB.prepare("SELECT version, data FROM bot_state WHERE id=1").first();
+      let state = {};
+      try { state = JSON.parse(stateRow?.data || "{}"); } catch {}
+      
+      const outgoingPending = await env.DB.prepare("SELECT count(*) as cnt FROM outgoing WHERE status='pending'").first();
+      const processedCount = await env.DB.prepare("SELECT count(*) as cnt FROM processed_events").first();
+      
+      const tgRes = await fetch("https://api.telegram.org/bot" + env.BOT_TOKEN + "/getWebhookInfo");
+      const tgInfo = await tgRes.json();
+      
+      return new Response(JSON.stringify({
+        status: "OK",
+        bot_owner: state.owner,
+        buttons_count: state.buttons?.length || 0,
+        admins: Object.keys(state.admins || {}),
+        groups: state.groups,
+        outgoing_pending: outgoingPending?.cnt || 0,
+        processed_events: processedCount?.cnt || 0,
+        telegram_webhook: tgInfo
+      }, null, 2), {
+        headers: { "Content-Type": "application/json; charset=utf-8" }
+      });
+    }
+    
     if (request.method === "GET") {
       if (url.pathname === "/setup-webhook") {
-        if (!env.BOT_TOKEN) return new Response("Missing BOT_TOKEN in Cloudflare Settings -> Variables", { status: 400 });
+        if (!env.BOT_TOKEN) return new Response("Missing BOT_TOKEN", { status: 400 });
         const webhookUrl = url.origin + "/api/telegram/webhook";
         const tgRes = await fetch("https://api.telegram.org/bot" + env.BOT_TOKEN + "/setWebhook", {
           method: "POST",
@@ -1984,21 +2027,31 @@ async function initDatabase(db) {
           headers: { "Content-Type": "application/json; charset=utf-8" }
         });
       }
-      return new Response(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>بوت هضبة</title></head><body style="font-family:system-ui;text-align:center;padding:40px;line-height:1.8;background:#f8fafc;"><h1>🌄 خادم بوت «ردود هَضَبَة» يعمل بنجاح!</h1><p>الخادم السحابي نشط على Cloudflare ومتصل بقاعدة بيانات D1 ومستودع GitHub.</p><div style="margin:30px 0;"><a href="/setup-webhook" style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">⚡️ تفعيل وربط الويب هوك مع تليجرام</a></div><p style="color:#64748b;font-size:14px;">رابط الويب هوك: <code>` + url.origin + `/api/telegram/webhook</code></p></body></html>`, {
+      
+      return new Response(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>بوت هضبة</title></head><body style="font-family:system-ui;text-align:center;padding:40px;line-height:1.8;background:#f8fafc;"><h1>🌄 خادم بوت «ردود هَضَبَة» يعمل بنجاح!</h1><p>الخادم السحابي نشط على Cloudflare ومتصل بقاعدة بيانات D1 ومستودع GitHub.</p><div style="margin:30px 0;"><a href="/setup-webhook" style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">⚡️ تفعيل وربط الويب هوك مع تليجرام</a></div><p style="color:#64748b;font-size:14px;"><a href="/debug">🔍 فحص تشخيصي لحالة البوت وقاعدة البيانات</a></p></body></html>`, {
         headers: { "Content-Type": "text/html; charset=utf-8" }
       });
     }
+    
     if (request.method === "POST") {
-      if (!env.BOT_TOKEN) return new Response("Missing BOT_TOKEN", { status: 500 });
-      if (!env.DB) return new Response("Missing DB binding", { status: 500 });
-      await initDatabase(env.DB);
+      if (!env.BOT_TOKEN || !env.DB) return new Response("Not configured", { status: 500 });
+      
+      try {
+        await initDatabase(env.DB);
+      } catch (dbErr) {
+        console.error("InitDatabase error:", dbErr);
+      }
+      
       const raw = await request.text();
       let update;
       try { update = JSON.parse(raw); } catch { return new Response("Invalid JSON", { status: 400 }); }
       if (!update || typeof update.update_id !== "number") return new Response("Invalid update", { status: 400 });
-      const repo = new Repository(env.DB);
+      
+      const repo = new Repository(env.DB, 7783223515);
       const api = new Telegram(env.BOT_TOKEN);
-      const service = new Service(repo, api, {});
+      const config = { username: "KFUMP26_BOT", claimCode: "" };
+      const service = new Service(repo, api, config);
+      
       try {
         const result = await service.ingest(update);
         return new Response(result.complete ? "OK" : "Retry", { status: result.complete ? 200 : 503 });
@@ -2007,6 +2060,7 @@ async function initDatabase(db) {
         return new Response("OK", { status: 200 });
       }
     }
+    
     return new Response("Method Not Allowed", { status: 405 });
   }
 });
