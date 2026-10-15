@@ -1,0 +1,23 @@
+name: Auto Sync from Google Drive
+
+on:
+  schedule:
+    - cron: '*/10 * * * *' # يفحص الدرايف تلقائياً كل 10 دقائق
+  workflow_dispatch: # يتيح لك تشغيله فوراً بضغطة زر عند الرغبة
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch latest code from Gemini Google Drive
+        run: |
+          curl -sL "https://drive.google.com/uc?export=download&id=1ssDtwDryZ1yy8JTgTVnyjHRlDtYs-Yd9" -o index.js
+          git config user.name "Gemini AutoSync"
+          git config user.email "actions@github.com"
+          git add index.js
+          if ! git diff --staged --quiet; then
+            git commit -m "Auto-update bot from Gemini Google Drive"
+            git push
+          fi
+          
