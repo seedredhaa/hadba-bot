@@ -1,5 +1,11 @@
 {
   "name": "hadba-bot",
   "main": "index.js",
-  "compatibility_date": "2026-10-14"
+  "compatibility_date": "2026-10-14",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_id": "b10cfd4b-9c43-4fcd-8810-ffc257026c29"
+    }
+  ]
 }
